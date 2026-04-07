@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chinese Trainer</title>
+
+<style>
+body {
+    font-family: -apple-system, sans-serif;
+    text-align: center;
+    background: #111;
+    color: #eee;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+button {
+    padding: 14px;
+    margin: 6px;
+    font-size: 18px;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+}
+
+#question {
+    font-size: 56px;
+    margin: 20px 0;
+}
+
+.correct {
+    color: #6f6;
+}
+
+.wrong {
+    color: #f66;
+}
+
+input {
+    font-size: 22px;
+    padding: 10px;
+    width: 80%;
+    max-width: 400px;
+}
+
+#menu {
+    margin-top: 20px;
+}
+
+#quiz {
+    display: none;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#extra {
+    margin: 10px 0 20px 0;
+    font-size: 20px;
+    min-height: 24px;
+    color: #ccc;
+}
+
+#options {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#options button {
+    flex: 1 1 45%;
+    margin: 8px;
+}
+
+#inputArea {
+    margin: 15px 0;
+}
+
+#feedback {
+    margin-top: 20px;
+    font-size: 22px;
+    min-height: 28px;
+}
+
+#datasetSelect {
+    margin: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Chinese Trainer</h2>
+
+<div id="datasetSelect">
+  <label for="sizeSelect" style="font-size:18px;">Choose dataset size:</label>
+  <select id="sizeSelect" onchange="changeDatasetSize()" style="font-size:18px; padding: 6px; margin-left: 12px;">
+    <option value="30" selected>30 characters</option>
+    <option value="50">50 characters</option>
+    <option value="100">100 characters</option>
+  </select>
+</div>
+
+<div id="menu">
+    <button onclick="start(0)">Char → Pinyin</button>
+    <button onclick="start(1)">Pinyin → Char (MC)</button>
+    <button onclick="start(2)">Write Character</button>
+    <button onclick="start(3)">Tone Quiz</button>
+</div>
+
+<div id="quiz">
+    <div id="question"></div>
+    <div id="extra"></div>
+    <div id="options"></div>
+
+    <div id="inputArea" style="display:none;">
+        <input id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <button onclick="submitTyping()">OK</button>
+    </div>
+
+    <div id="feedback"></div>
+    <button onclick="quit()" style="margin-top: 30px; width: 200px; background: #444; color: #eee;">Quit</button>
+</div>
+
+<script>
+// tone marks
+function tone(p, t) {
+    const tones = {
+        a:["ā","á","ǎ","à"], e:["ē","é","ě","è"],
+        i:["ī","í","ǐ","ì"], o:["ō","ó","ǒ","ò"],
+        u:["ū","ú","ǔ","ù"], v:["ǖ","ǘ","ǚ","ǜ"]
+    };
+    for (let v in tones) {
+        if (p.includes(v)) return p.replace(v, tones[v][t-1]);
+    }
+    return p;
+}
+
+// datasets
+const raw30 = [
+  ["的", "de", 5, "of, possessive"], ["一", "yi", 1, "one"], ["是", "shi", 4, "is, are"],
+  ["不", "bu", 4, "not"], ["了", "le", 5, "completed action"], ["在", "zai", 4, "at, in"],
+  ["人", "ren", 2, "person"], ["有", "you", 3, "have"], ["我", "wo", 3, "I, me"],
+  ["他", "ta", 1, "he, him"], ["这", "zhe", 4, "this"], ["个", "ge", 4, "general measure word"],
+  ["们", "men", 5, "plural marker"], ["中", "zhong", 1, "middle"], ["来", "lai", 2, "come"],
+  ["上", "shang", 4, "up"], ["大", "da", 4, "big"], ["为", "wei", 4, "for"],
+  ["和", "he", 2, "and"], ["国", "guo", 2, "country"], ["地", "di", 4, "earth"],
+  ["到", "dao", 4, "arrive"], ["以", "yi", 3, "using"], ["说", "shuo", 1, "speak"],
+  ["时", "shi", 2, "time"], ["要", "yao", 4, "want"], ["就", "jiu", 4, "then"],
+  ["出", "chu", 1, "go out"], ["会", "hui", 4, "can, will"], ["可", "ke", 3, "can"]
+];
+
+const raw50 = [
+  ...raw30,
+  ["也", "ye", 3, "also"], ["你", "ni", 3, "you"], ["对", "dui", 4, "correct"],
+  ["生", "sheng", 1, "life"], ["能", "neng", 2, "can"], ["而", "er", 2, "and, but"],
+  ["子", "zi", 3, "child"], ["那", "na", 4, "that"], ["得", "de", 5, "particle"],
+  ["于", "yu", 2, "in, at"], ["着", "zhe", 5, "particle"], ["下", "xia", 4, "down"],
+  ["自", "zi", 4, "self"], ["之", "zhi", 1, "of"], ["年", "nian", 2, "year"],
+  ["过", "guo", 4, "pass"], ["发", "fa", 1, "send"], ["后", "hou", 4, "after"],
+  ["作", "zuo", 4, "do"], ["里", "li", 3, "inside"], ["用", "yong", 4, "use"],
+  ["道", "dao", 4, "way"], ["行", "xing", 2, "walk"], ["所", "suo", 3, "place"],
+  ["然", "ran", 2, "so"], ["家", "jia", 1, "home"], ["种", "zhong", 3, "type"],
+  ["事", "shi", 4, "thing"], ["成", "cheng", 2, "become"], ["方", "fang", 1, "square"],
+  ["多", "duo", 1, "many"], ["经", "jing", 1, "pass through"], ["么", "me", 5, "what"]
+];
+
+const raw100 = [
+  ...raw50,
+  ["去", "qu", 4, "go"], ["法", "fa", 3, "law"], ["学", "xue", 2, "study"],
+  ["如", "ru", 2, "like"], ["都", "dou", 1, "all"], ["同", "tong", 2, "same"],
+  ["现", "xian", 4, "present"], ["当", "dang", 1, "when"], ["没", "mei", 2, "not"],
+  ["动", "dong", 4, "move"], ["面", "mian", 4, "face"], ["起", "qi", 3, "rise"],
+  ["看", "kan", 4, "see"], ["定", "ding", 4, "decide"], ["天", "tian", 1, "sky"],
+  ["分", "fen", 1, "divide"], ["还", "hai", 2, "still"], ["进", "jin", 4, "enter"],
+  ["好", "hao", 3, "good"], ["小", "xiao", 3, "small"], ["部", "bu", 4, "part"],
+  ["其", "qi", 2, "its"], ["些", "xie", 1, "some"], ["主", "zhu", 3, "main"],
+  ["样", "yang", 4, "kind"], ["理", "li", 3, "reason"], ["心", "xin", 1, "heart"],
+  ["她", "ta", 1, "she"], ["本", "ben", 3, "root"], ["前", "qian", 2, "front"],
+  ["开", "kai", 1, "open"], ["但", "dan", 4, "but"], ["因", "yin", 1, "because"],
+  ["只", "zhi", 3, "only"], ["从", "cong", 2, "from"], ["想", "xiang", 3, "think"],
+  ["实", "shi", 2, "real"], ["日", "ri", 4, "day"], ["军", "jun", 1, "army"],
+  ["者", "zhe", 3, "person"], ["意", "yi", 4, "meaning"], ["无", "wu", 2, "not"],
+  ["力", "li", 4, "power"], ["它", "ta", 1, "it"], ["与", "yu", 3, "and"],
+  ["长", "chang", 2, "long"], ["把", "ba", 3, "hold"], ["机", "ji", 1, "machine"],
+  ["十", "shi", 2, "ten"], ["民", "min", 2, "people"], ["第", "di", 4, "ordinal"],
+  ["公", "gong", 1, "public"], ["此", "ci", 3, "this"], ["已", "yi", 3, "already"],
+  ["工", "gong", 1, "work"], ["使", "shi", 3, "make"], ["情", "qing", 2, "feeling"],
+  ["明", "ming", 2, "bright"], ["性", "xing", 4, "nature"], ["知", "zhi", 1, "know"],
+  ["全", "quan", 2, "whole"], ["三", "san", 1, "three"], ["又", "you", 4, "again"],
+  ["关", "guan", 1, "close"], ["点", "dian", 3, "point"], ["正", "zheng", 4, "correct"],
+  ["业", "ye", 4, "industry"], ["外", "wai", 4, "outside"], ["将", "jiang", 1, "will"],
+  ["两", "liang", 3, "two"], ["高", "gao", 1, "high"], ["间", "jian", 1, "between"],
+  ["由", "you", 2, "from"], ["问", "wen", 4, "ask"], ["很", "hen", 3, "very"],
+  ["最", "zui", 4, "most"], ["重", "zhong", 4, "heavy"], ["物", "wu", 4, "thing"],
+  ["手", "shou", 3, "hand"], ["应", "ying", 1, "should"], ["战", "zhan", 4, "fight"],
+  ["向", "xiang", 4, "toward"], ["头", "tou", 2, "head"], ["文", "wen", 2, "language"]
+];
+
+let datasetSize = 30; // default
+let rawCurrent = raw30;
+let data = [];
+
+function changeDatasetSize() {
+    const size = document.getElementById("sizeSelect").value;
+    datasetSize = parseInt(size);
+
+    if (datasetSize === 30) rawCurrent = raw30;
+    else if (datasetSize === 50) rawCurrent = raw50;
+    else if (datasetSize === 100) rawCurrent = raw100;
+
+    data = rawCurrent.map(d => [d[0], tone(d[1], d[2]), d[1], d[2], d[3]]);
+}
+
+// Initialize data
+changeDatasetSize();
+
+let mode, current;
+
+function rand() {
+    return data[Math.floor(Math.random() * data.length)];
+}
+
+function start(m) {
+    mode = m;
+    document.getElementById("datasetSelect").style.display = "none";
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("quiz").style.display = "flex";
+    next();
+}
+
+function next() {
+    document.getElementById("feedback").innerHTML = "";
+    document.getElementById("options").innerHTML = "";
+    document.getElementById("inputArea").style.display = "none";
+    document.getElementById("extra").innerHTML = "";
+
+    current = rand();
+
+    if (mode === 0) {
+        // char → pinyin
+        setQ(current[0]);
+        mc(current[1], d => d[1]);
+
+    } else if (mode === 1) {
+        // pinyin → char + meaning (meaning hidden until feedback)
+        setQ(current[1]);
+        mc(current[0], d => d[0]);
+
+    } else if (mode === 2) {
+        // typing
+        setQ(current[1]);
+        document.getElementById("inputArea").style.display = "block";
+
+    } else {
+        // tone quiz
+        setQ(current[0]);
+
+        let base = current[2];
+        let correct = current[1];
+
+        let opts = [];
+        for (let i = 1; i <= 4; i++) opts.push(tone(base, i));
+
+        mcFromList(correct, opts);
+    }
+}
+
+function setQ(q) {
+    document.getElementById("question").innerText = q;
+}
+
+function mc(correct, pick) {
+    let opts = [correct];
+    while (opts.length < 4) {
+        let r = pick(rand());
+        if (!opts.includes(r)) opts.push(r);
+    }
+    mcFromList(correct, opts);
+}
+
+function mcFromList(correct, opts) {
+    opts.sort(() => Math.random() - 0.5);
+
+    opts.forEach(o => {
+        let b = document.createElement("button");
+        b.innerText = o;
+
+        b.onclick = () => {
+            if (o === correct) {
+                b.style.background = "green";
+                feedback("Correct", 1);
+            } else {
+                b.style.background = "red";
+                feedback("Wrong (" + correct + ")", 0);
+            }
+        };
+
+        document.getElementById("options").appendChild(b);
+    });
+}
+
+function submitTyping() {
+    let v = document.getElementById("input").value.trim();
+    if (v === current[0]) {
+        feedback("Correct", 1);
+    } else {
+        feedback("Wrong (" + current[0] + ")", 0);
+    }
+    document.getElementById("input").value = "";
+}
+
+function feedback(text, good) {
+    let f = document.getElementById("feedback");
+    f.innerText = text;
+    f.className = good ? "correct" : "wrong";
+
+    // Show English meaning only after answer
+    document.getElementById("extra").innerText = current[4];
+
+    // Disable options/input while showing feedback
+    disableInputs(true);
+
+    setTimeout(() => {
+        disableInputs(false);
+        next();
+    }, 1400);
+}
+
+function disableInputs(disable) {
+    // Disable all buttons in options
+    let buttons = document.getElementById("options").querySelectorAll("button");
+    buttons.forEach(b => b.disabled = disable);
+
+    // Disable typing input and button if visible
+    let input = document.getElementById("input");
+    let okBtn = input.nextElementSibling;
+    input.disabled = disable;
+    if (okBtn) okBtn.disabled = disable;
+}
+
+function quit() {
+    document.getElementById("quiz").style.display = "none";
+    document.getElementById("menu").style.display = "block";
+    document.getElementById("datasetSelect").style.display = "block";
+    document.getElementById("feedback").innerText = "";
+    document.getElementById("extra").innerText = "";
+    document.getElementById("options").innerHTML = "";
+    document.getElementById("inputArea").style.display = "none";
+    document.getElementById("input").value = "";
+}
+</script>
+
+</body>
+</html>
