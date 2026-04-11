@@ -109,6 +109,7 @@ input {
   <select id="sizeSelect" onchange="changeDatasetSize()" style="font-size:18px; padding: 6px; margin-left: 12px;">
     <option value="30" selected>30 characters</option>
     <option value="50">50 characters</option>
+    <option value="75">75 characters</option>
     <option value="100">100 characters</option>
     <option value="300">300 characters</option>
     <option value="500">500 characters</option>
@@ -133,7 +134,9 @@ input {
     </div>
 
     <div id="feedback"></div>
-    <button onclick="quit()" style="margin-top: 30px; width: 200px; background: #444; color: #eee;">Quit</button>
+    <div id="quitButton" style="display:none;">
+        <button onclick="quit()" style="margin-top: 30px; width: 200px; background: #444; color: #eee;">Quit</button>    
+    </div>
 </div>
 
 <script>
@@ -210,10 +213,9 @@ const raw50 = [
   ["后", "hou", 4, "after"],
   ["作", "zuo", 4, "do"]
 ];
-
-const raw100 = [
+const raw75 =[
   ...raw50,
-  ["得", "de", 5, "particle"],
+  ["得", "de", 5, "particle (to get)"],
   ["于", "yu", 2, "in, at"],
   ["着", "zhe", 5, "particle"],
   ["自", "zi", 4, "self"],
@@ -232,12 +234,16 @@ const raw100 = [
   ["起", "qi", 3, "rise"],
   ["定", "ding", 4, "decide"],
   ["分", "fen", 1, "divide"],
-  ["还", "hai", 2, "still"],
+  ["还", "hai", 2, "also, still"],
   ["进", "jin", 4, "enter"],
   ["部", "bu", 4, "part"],
   ["其", "qi", 2, "its"],
   ["些", "xie", 1, "some"],
-  ["主", "zhu", 3, "main"],
+  ["主", "zhu", 3, "main"]
+]
+
+const raw100 = [
+  ...raw75,
   ["样", "yang", 4, "kind"],
   ["她", "ta", 1, "she"],
   ["前", "qian", 2, "front"],
@@ -735,6 +741,7 @@ function changeDatasetSize() {
 
     if (datasetSize === 30) rawCurrent = raw30;
     else if (datasetSize === 50) rawCurrent = raw50;
+    else if (datasetSize === 75) rawCurrent = raw75;
     else if (datasetSize === 100) rawCurrent = raw100;
     else if (datasetSize === 300) rawCurrent = raw300;
     else if (datasetSize === 500) rawCurrent = raw500;
@@ -764,6 +771,7 @@ function next() {
     document.getElementById("options").innerHTML = "";
     document.getElementById("inputArea").style.display = "none";
     document.getElementById("extra").innerHTML = "";
+    document.getElementById("quitButton").style.display = "block";
 
     current = rand();
 
@@ -810,7 +818,6 @@ function mc(correct, pick) {
 }
 
 function mcFromList(correct, opts) {
-    opts.sort(() => Math.random() - 0.5);
 
     opts.forEach(o => {
         let b = document.createElement("button");
