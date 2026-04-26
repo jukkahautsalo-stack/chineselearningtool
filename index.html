@@ -29,6 +29,7 @@ button {
     border-radius: 12px;
     border: none;
     cursor: pointer;
+    
 }
 
 #question {
@@ -143,6 +144,7 @@ input {
 </div>
 
 <script>
+
 // tone marks
 function tone(p, t) {
     const tones = {
@@ -758,6 +760,15 @@ function changeDatasetSize() {
 // Initialize data
 changeDatasetSize();
 
+//sound effect for buttons
+const clickSound = new Audio();
+clickSound.src="./Audio/UI/Button_Click_v4.mp3";
+document.querySelectorAll("button").forEach(button => {
+  button.addEventListener("click", () => {
+    clickSound.play();
+  });
+});
+
 let mode, current;
 
 function rand() {
@@ -765,6 +776,7 @@ function rand() {
 }
 
 function start(m) {
+
     mode = m;
     document.getElementById("datasetSelect").style.display = "none";
     document.getElementById("menu").style.display = "none";
@@ -814,7 +826,7 @@ function setQ(q) {
     document.getElementById("question").innerText = q;
 }
 
-function mc(correct, pick) {
+function mc(correct, pick) {  
     let opts = [correct];
     while (opts.length < 4) {
         let r = pick(rand());
@@ -824,7 +836,6 @@ function mc(correct, pick) {
 }
 
 function mcFromList(correct, opts) {
-
     if(mode!==3){
         opts.sort(() => Math.random() - 0.5);
     }
@@ -834,6 +845,7 @@ function mcFromList(correct, opts) {
         b.innerText = o;
 
         b.onclick = () => {
+            clickSound.play();
             if (o === correct) {
                 b.style.background = "green";
                 feedback("Correct", 1);
